@@ -1,0 +1,50 @@
+// Canonical API contract — the single source of truth lives in @finora/contracts.
+// This module only re-exports it under the names the Web app already uses, so
+// there is exactly one definition of every resource/request/response type
+// shared with the API and the Mobile client.
+export type {
+  Account,
+  AccountStatus,
+  AccountType,
+  AuthSession,
+  Budget,
+  Category,
+  CategoryStatus,
+  CategoryType,
+  ClientErrorCode,
+  CollectionEnvelope,
+  CreateAccountRequest,
+  CreateBudgetRequest,
+  CreateCategoryRequest,
+  CreateSavingsGoalRequest,
+  CreateTransactionRequest,
+  CreateTransferRequest,
+  DashboardBudget,
+  DashboardGoal,
+  DashboardSummary,
+  ErrorCode,
+  ErrorEnvelope,
+  GoalStatus,
+  LoginRequest,
+  MoneyMinor,
+  RegisterRequest,
+  SavingsGoal,
+  SuccessEnvelope,
+  Transaction,
+  TransactionFilters,
+  TransactionStatus,
+  TransactionType,
+  Transfer,
+  TransferCreationResult,
+  TransferDirection,
+  UpdateAccountRequest,
+  UpdateBudgetRequest,
+  UpdateCategoryRequest,
+  UpdateProfileRequest,
+  UpdateSavingsGoalRequest,
+  UpdateTransactionRequest,
+  User,
+} from '@finora/contracts';
+
+// (all API shapes are re-exported from @finora/contracts above)
+
