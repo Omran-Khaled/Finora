@@ -1,0 +1,1 @@
+{"name":"Basic Acceptance Test","openingBalance":100,"expense":30,"expected":{"status":"ACTIVE","balance":70}}

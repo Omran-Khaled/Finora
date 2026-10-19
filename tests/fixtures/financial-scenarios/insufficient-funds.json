@@ -1,0 +1,1 @@
+{"name":"Insufficient Funds Test","openingBalance":100,"expense":150,"expected":{"error":"INSUFFICIENT_FUNDS","transactionCreated":false}}

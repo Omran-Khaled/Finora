@@ -1,0 +1,1 @@
+{"name":"Financial Engine Golden Test","accounts":{"bank":1000,"savings":500},"income":2500,"expense":700,"transfer":300,"expected":{"bank":2500,"savings":800,"total":3300}}

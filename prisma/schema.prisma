@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AccountType {
+  CASH
+  BANK
+  SAVINGS
+}
+
+enum AccountStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum TransactionStatus {
+  ACTIVE
+  VOIDED
+}
+
+enum CategoryStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+}
+
+enum GoalStatus {
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum TransferDirection {
+  SOURCE
+  DESTINATION
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  email        String        @unique
+  passwordHash String        @map("password_hash")
+  baseCurrency String        @map("base_currency") @db.Char(3)
+  accounts     Account[]
+  transactions Transaction[]
+  categories   Category[]
+  transfers    Transfer[]
+  budgets      Budget[]
+  savingsGoals SavingsGoal[]
+  sessions     Session[]
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamp(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamp(3)
+  @@map("users")
+}
+
+model Account {
+  id                  String           @id @default(uuid()) @db.Uuid
+  userId              String           @map("user_id") @db.Uuid
+  name                String
+  type                AccountType
+  currencyCode        String           @map("currency_code") @db.Char(3)
+  openingBalanceMinor BigInt           @map("opening_balance_minor")
+  status              AccountStatus
+  user                User             @relation(fields: [userId], references: [id])
+  transactions        Transaction[]
+  savingsGoal         SavingsGoal?
+  createdAt           DateTime         @default(now()) @map("created_at") @db.Timestamp(3)
+  updatedAt           DateTime         @updatedAt @map("updated_at") @db.Timestamp(3)
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Transaction {
+  id              String            @id @default(uuid()) @db.Uuid
+  userId          String            @map("user_id") @db.Uuid
+  accountId       String            @map("account_id") @db.Uuid
+  categoryId      String?           @map("category_id") @db.Uuid
+  type            TransactionType
+  amountMinor     BigInt            @map("amount_minor")
+  currencyCode    String            @map("currency_code") @db.Char(3)
+  description     String?
+  transactionDate DateTime          @map("transaction_date") @db.Date
+  status          TransactionStatus
+  transferDirection TransferDirection? @map("transfer_direction")
+  idempotencyKey  String?           @map("idempotency_key")
+  payloadFingerprint String?       @map("payload_fingerprint")
+  user                User              @relation(fields: [userId], references: [id])
+  account             Account           @relation(fields: [accountId], references: [id])
+  category            Category?         @relation(fields: [categoryId], references: [id])
+  sourceTransfer      Transfer?         @relation("TransferSource")
+  destinationTransfer Transfer?         @relation("TransferDestination")
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamp(3)
+  updatedAt       DateTime          @updatedAt @map("updated_at") @db.Timestamp(3)
+  @@index([userId, transactionDate])
+  @@index([accountId, status])
+  @@index([categoryId, status, transactionDate])
+  @@index([userId, categoryId, type, status, transactionDate], map: "transactions_user_category_type_status_date_idx")
+  @@unique([userId, idempotencyKey])
+  @@map("transactions")
+}
+
+model Category {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String?        @map("user_id") @db.Uuid
+  name      String
+  type      CategoryType
+  isSystem  Boolean        @map("is_system")
+  status       CategoryStatus
+  user         User?         @relation(fields: [userId], references: [id])
+  transactions Transaction[]
+  budgets      Budget[]
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamp(3)
+  updatedAt DateTime       @updatedAt @map("updated_at") @db.Timestamp(3)
+  @@index([userId])
+  @@map("categories")
+}
+
+model Transfer {
+  id                       String   @id @default(uuid()) @db.Uuid
+  userId                   String   @map("user_id") @db.Uuid
+  sourceTransactionId      String   @map("source_transaction_id") @db.Uuid
+  destinationTransactionId String   @map("destination_transaction_id") @db.Uuid
+  idempotencyKey           String?  @map("idempotency_key")
+  payloadFingerprint       String?  @map("payload_fingerprint")
+  user                     User     @relation(fields: [userId], references: [id])
+  sourceTransaction         Transaction @relation("TransferSource", fields: [sourceTransactionId], references: [id])
+  destinationTransaction   Transaction @relation("TransferDestination", fields: [destinationTransactionId], references: [id])
+  createdAt                DateTime @default(now()) @map("created_at") @db.Timestamp(3)
+  @@index([userId])
+  @@unique([sourceTransactionId])
+  @@unique([destinationTransactionId])
+  @@unique([userId, idempotencyKey])
+  @@map("transfers")
+}
+
+model Budget {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  categoryId String   @map("category_id") @db.Uuid
+  year       Int      @db.SmallInt
+  month      Int      @db.SmallInt
+  limitMinor BigInt   @map("limit_minor")
+  user       User     @relation(fields: [userId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(3)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp(3)
+  @@unique([userId, categoryId, year, month])
+  @@map("budgets")
+}
+
+model SavingsGoal {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String     @map("user_id") @db.Uuid
+  accountId         String     @unique @map("account_id") @db.Uuid
+  name              String
+  targetAmountMinor BigInt     @map("target_amount_minor")
+  targetDate        DateTime?  @map("target_date") @db.Date
+  status            GoalStatus
+  user              User     @relation(fields: [userId], references: [id])
+  account           Account  @relation(fields: [accountId], references: [id])
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamp(3)
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamp(3)
+  @@index([userId])
+  @@index([userId, status])
+  @@map("savings_goals")
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamp(3)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamp(3)
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(3)
+  @@index([userId])
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("sessions")
+}

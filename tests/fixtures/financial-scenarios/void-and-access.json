@@ -1,0 +1,1 @@
+{"name":"Void, Idempotency, Budget, Goal, and Cross-User Tests","void":{"openingBalance":800,"expense":200,"expectedBalance":1000},"idempotency":{"expectedRecords":1},"budget":{"limit":300,"expenses":[100,50,80],"expectedSpent":230,"expectedRemaining":70},"goal":{"balance":540,"target":1200,"expectedProgress":45},"crossUser":{"expectedStatus":404}}

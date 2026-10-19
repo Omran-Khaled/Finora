@@ -1,0 +1,1 @@
+{"name":"Transfer Invariant Test","accounts":{"bank":500,"savings":100},"transfer":200,"expected":{"bank":300,"savings":300,"total":600}}
