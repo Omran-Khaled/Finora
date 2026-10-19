@@ -6,25 +6,16 @@ const smokeEnabled = process.env.FINORA_HTTP_SMOKE === '1';
 describe.skipIf(!smokeEnabled)('real API HTTP smoke', () => {
   beforeAll(() => {
     const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      clear: () => values.clear(),
+    };
 
-    Object.defineProperty(window, 'sessionStorage', {
+    Object.defineProperty(globalThis, 'window', {
       configurable: true,
-      value: {
-        getItem: (key: string) => values.get(key) ?? null,
-        setItem: (key: string, value: string) => values.set(key, value),
-        removeItem: (key: string) => values.delete(key),
-        clear: () => values.clear(),
-      },
-    });
-
-    Object.defineProperty(window, 'localStorage', {
-      configurable: true,
-      value: {
-        getItem: (key: string) => values.get(key) ?? null,
-        setItem: (key: string, value: string) => values.set(key, value),
-        removeItem: (key: string) => values.delete(key),
-        clear: () => values.clear(),
-      },
+      value: { sessionStorage: storage, localStorage: storage },
     });
   });
 
