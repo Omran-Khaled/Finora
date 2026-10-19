@@ -1,7 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { resolveWebApiConfig } from '@/lib/api-config';
 
 describe('Web API configuration', () => {
+  afterEach(() => {
+    delete process.env.FINORA_HTTP_SMOKE;
+  });
+
   it('selects the real adapter for an explicit valid real configuration', () => {
     expect(resolveWebApiConfig('real', 'https://api.finora.com/api/v1/', 'production')).toEqual({
       useRealApi: true,
@@ -67,6 +71,18 @@ describe('Web API configuration', () => {
   ])('rejects unsafe production API URL: %s', (baseUrl) => {
     expect(() => resolveWebApiConfig('real', baseUrl, 'production')).toThrow(
       'must use HTTPS and a real, non-placeholder production host',
+    );
+  });
+
+  it('allows only a loopback HTTP endpoint for the explicit smoke mode', () => {
+    process.env.FINORA_HTTP_SMOKE = '1';
+
+    expect(resolveWebApiConfig('real', 'http://127.0.0.1:5000/api/v1', 'production')).toEqual({
+      useRealApi: true,
+      baseUrl: 'http://127.0.0.1:5000/api/v1',
+    });
+    expect(() => resolveWebApiConfig('real', 'http://api.finora.com/api/v1', 'production')).toThrow(
+      'FINORA_HTTP_SMOKE may only use an HTTP loopback API URL.',
     );
   });
 });

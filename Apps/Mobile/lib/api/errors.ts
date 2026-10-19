@@ -7,6 +7,10 @@
 import { ApiErrorCode, ApiErrorEnvelope } from "../../types/contract";
 
 const FALLBACK_MESSAGE = "We couldn't connect to the service. Please try again.";
+const GENERIC_SERVER_MESSAGES = new Set([
+  "Internal server error.",
+  "Something went wrong. Please try again.",
+]);
 
 // Local transport metadata; the shared API error envelope remains unchanged.
 type HttpApiError = ApiErrorEnvelope & { readonly status?: number };
@@ -44,9 +48,13 @@ export function toUserMessage(err: ApiErrorEnvelope | string | unknown): string 
       case "INVALID_CATEGORY_TYPE":
         return "Choose a category that matches the transaction type.";
       case "ACCOUNT_ARCHIVED":
-        return "This account is already archived. Return to Accounts and choose an active account.";
+        return isGenericServerMessage(err.error.message)
+          ? "This account is already archived. Return to Accounts and choose an active account."
+          : err.error.message;
       case "ACCOUNT_HAS_ACTIVE_GOAL":
-        return "This account cannot be archived while it has an active savings goal.";
+        return isGenericServerMessage(err.error.message)
+          ? "This account cannot be archived while it has an active savings goal."
+          : err.error.message;
       case "VALIDATION_ERROR":
       case "INVALID_AMOUNT":
       case "INVALID_CURRENCY":
@@ -58,6 +66,10 @@ export function toUserMessage(err: ApiErrorEnvelope | string | unknown): string 
     }
   }
   return FALLBACK_MESSAGE;
+}
+
+function isGenericServerMessage(message: string | undefined): boolean {
+  return !message || GENERIC_SERVER_MESSAGES.has(message);
 }
 
 /** Map an HTTP status + optional server body onto the canonical envelope. */

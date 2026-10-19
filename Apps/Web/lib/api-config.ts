@@ -34,12 +34,14 @@ function validateBaseUrl(value: string | undefined, environment: ApiEnvironment)
 
   if (environment === 'production') {
     const host = url.hostname.toLowerCase().replace(/\.+$/, '');
+    const isLoopbackHost = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+    const isHttpSmoke = process.env.FINORA_HTTP_SMOKE === '1';
+    if (isHttpSmoke && (url.protocol !== 'http:' || !isLoopbackHost)) {
+      throw new Error('FINORA_HTTP_SMOKE may only use an HTTP loopback API URL.');
+    }
     if (
-      url.protocol !== 'https:' ||
-      host === 'localhost' ||
-      host === '127.0.0.1' ||
-      host === '::1' ||
-      host === '[::1]' ||
+      (!isHttpSmoke && url.protocol !== 'https:') ||
+      (!isHttpSmoke && isLoopbackHost) ||
       host === 'example.com' ||
       host.endsWith('.example.com') ||
       host.endsWith('.test') ||

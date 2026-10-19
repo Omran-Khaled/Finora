@@ -121,6 +121,10 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
         working-directory: .
+      - run: pnpm --filter @finora/contracts build
+        working-directory: .
+      - run: pnpm --filter @finora/domain build
+        working-directory: .
       - run: pnpm typecheck
       - run: pnpm lint
       - run: pnpm test
@@ -141,6 +145,8 @@ jobs:
           node-version-file: './.nvmrc'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm --filter @finora/contracts build
         working-directory: .
       - run: pnpm typecheck
       - run: pnpm lint
@@ -268,5 +274,6 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @finora/api audit --prod --audit-level high
+      # pnpm-workspace.yaml ignores only two advisories with no upstream patch.
       - run: pnpm --filter nextjs audit --prod --audit-level high
       - run: pnpm --filter finora-mobile audit --prod --audit-level high
