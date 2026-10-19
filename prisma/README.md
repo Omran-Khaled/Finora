@@ -2,7 +2,7 @@
 
 PostgreSQL data layer for the Finora personal-finance platform — the schema, migrations, and commands that back the API's Prisma persistence branch (`ENABLE_PRISMA=true`).
 
-Part of the [Finora monorepo](../README.md). Product owner: Omran Khaled — عمران Khalid.
+Part of the [Finora monorepo](../README.md).
 
 ---
 
