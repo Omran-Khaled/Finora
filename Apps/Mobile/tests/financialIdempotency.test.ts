@@ -3,8 +3,8 @@ import type {
   CreateTransactionRequest,
   CreateTransferRequest,
   Transaction,
-  TransferCreationResult,
 } from '../types/contract';
+import type { TransferCreationResult } from '../lib/api/adapter';
 import { api } from '../lib/api/apiClient';
 import { SecureStorage } from '../lib/storage/secureStorage';
 

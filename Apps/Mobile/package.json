@@ -44,10 +44,12 @@
   },
   "devDependencies": {
     "@babel/runtime": "7.26.0",
+    "@jest/globals": "29.7.0",
     "@react-native/jest-preset": "0.86.3",
     "@react-native/metro-config": "0.86.3",
     "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^29.5.14",
+    "@types/node": "^26.6.5",
     "@types/react": "~19.2.18",
     "babel-preset-expo": "^57.0.14",
     "eslint": "^9.39.5",
