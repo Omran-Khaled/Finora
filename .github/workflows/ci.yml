@@ -53,6 +53,10 @@ jobs:
         working-directory: .
       - run: pnpm --filter @finora/api db:migrate:deploy
         working-directory: .
+      - run: pnpm --filter @finora/contracts build
+        working-directory: .
+      - run: pnpm --filter @finora/domain build
+        working-directory: .
       - run: pnpm --filter @finora/api typecheck
       - run: pnpm --filter @finora/api build
       - run: pnpm --filter @finora/api test

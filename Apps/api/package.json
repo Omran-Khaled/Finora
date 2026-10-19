@@ -2,7 +2,7 @@
   "name": "@finora/api",
   "private": true,
   "scripts": {
-    "build": "nest build",
+    "build": "pnpm --filter @finora/contracts build && pnpm --filter @finora/domain build && nest build",
     "db:generate": "node scripts/generate-prisma-client.cjs",
     "db:validate": "prisma validate --schema ../../prisma/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema ../../prisma/schema.prisma",
@@ -11,7 +11,7 @@
     "test:process": "node --test scripts/start-local.test.cjs",
     "start:dev": "nest start --watch",
     "typecheck": "tsc --noEmit",
-    "test": "jest --runInBand && node --test scripts/start-local.test.cjs",
+    "test": "pnpm --filter @finora/contracts build && pnpm --filter @finora/domain build && jest --runInBand && node --test scripts/start-local.test.cjs",
     "test:production": "jest --runInBand test/production-e2e.spec.ts"
   },
   "dependencies": {
