@@ -28,26 +28,26 @@ Finora is a personal-finance MVP with these capabilities:
 ```mermaid
 flowchart LR
     subgraph Clients
-        User[User]
-        Web[Finora Web<br/>Next.js]
-        Mobile[Finora Mobile<br/>Expo / React Native]
+        User["User"]
+        Web["Finora Web<br/>Next.js"]
+        Mobile["Finora Mobile<br/>Expo / React Native"]
     end
 
     subgraph API["Apps/api — NestJS<br/>(financial authority)"]
-        HTTP[HTTP /api/v1]
-        Guard[AuthGuard]
-        SVC[Services<br/>auth · accounts · transactions · transfers ·<br/>budgets · goals · dashboard]
+        HTTP["HTTP /api/v1"]
+        Guard["AuthGuard"]
+        SVC["Services<br/>auth · accounts · transactions · transfers ·<br/>budgets · goals · dashboard"]
     end
 
     subgraph Shared
-        Contracts[packages/contracts<br/>types · error codes · currency specs]
-        Domain[packages/domain<br/>Money (minor units)]
+        Contracts["packages/contracts<br/>types · error codes · currency specs"]
+        Domain["packages/domain<br/>Money (minor units)"]
     end
 
     subgraph Persistence
-        Store[(In-memory store)]
-        Prisma[Prisma Client]
-        DB[(PostgreSQL 16)]
+        Store[("In-memory store")]
+        Prisma["Prisma Client"]
+        DB[("PostgreSQL 16")]
     end
 
     User --> Web
