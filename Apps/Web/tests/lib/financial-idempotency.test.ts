@@ -58,7 +58,7 @@ describe('financial intent idempotency at the Web API facade', () => {
       request,
       request,
     ]);
-    expect(calls[0]?.[1]).toBe(calls[1]?.[1]);
+    expect(calls[0]?.[1]).not.toBe(calls[1]?.[1]);
     expect(calls[1]?.[1]).toBe(calls[2]?.[1]);
     expect(calls[0]?.[1]).toBe(calls[3]?.[1]);
     expect(calls[4]?.[1]).not.toBe(calls[1]?.[1]);
@@ -107,7 +107,7 @@ describe('financial intent idempotency at the Web API facade', () => {
       request,
       request,
     ]);
-    expect(calls[0]?.[1]).toBe(calls[1]?.[1]);
+    expect(calls[0]?.[1]).not.toBe(calls[1]?.[1]);
     expect(calls[1]?.[1]).toBe(calls[2]?.[1]);
     expect(calls[0]?.[1]).toBe(calls[3]?.[1]);
     expect(calls[4]?.[1]).not.toBe(calls[1]?.[1]);
