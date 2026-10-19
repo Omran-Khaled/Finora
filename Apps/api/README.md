@@ -2,7 +2,7 @@
 
 NestJS HTTP API — the **financial authority** for the Finora personal-finance platform. Validates ownership, enforces financial invariants, derives balances from transaction history, and serves versioned endpoints under `/api/v1`.
 
-Part of the [Finora monorepo](../../README.md). Product owner: Omran Khaled — عمران Khalid.
+Part of the [Finora monorepo](../../README.md).
 
 ---
 
