@@ -1,0 +1,74 @@
+# Node / package managers
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/cache/
+*.log
+npm-debug.log*
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+.turbo/
+.nx/
+.expo/
+web-build/
+coverage/
+*.tsbuildinfo
+
+# OS/editor noise
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Local env files
+.env
+.env.*
+!.env.example
+!.env.development.example
+!.env.production.example
+
+# NestJS / Prisma generated output
+prisma/generated/
+
+# Database / Docker local state
+pgdata/
+docker-data/
+docker-volumes/
+*.sql.gz
+*.dump
+*.sqlite
+*.sqlite3
+*.db
+
+# Mobile signing and platform artifacts
+Pods/
+android/.gradle/
+android/app/build/
+ios/build/
+local.properties
+*.jks
+*.keystore
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# Keys and certificates
+*.pem
+*.key
+id_rsa
+
+# Misc
+Thumbs.db
+
+# Package manager artifacts
+package-lock.json
+
+# Memory
+.agent
+.github/agents
+AGENTS.md

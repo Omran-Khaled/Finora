@@ -1,0 +1,268 @@
+name: CI
+
+permissions:
+  contents: read
+
+concurrency:
+  group: finora-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  api:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Apps/api
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: finora
+          POSTGRES_PASSWORD: finora
+          POSTGRES_DB: finora_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finora"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://finora:finora@localhost:5432/finora_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: './.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm --filter @finora/api db:generate
+        working-directory: .
+      - run: pnpm --filter @finora/api db:migrate:deploy
+        working-directory: .
+      - run: pnpm --filter @finora/api typecheck
+      - run: pnpm --filter @finora/api build
+      - run: pnpm --filter @finora/api test
+      - run: pnpm --filter @finora/api test:production
+        env:
+          ENABLE_PRISMA: true
+      - name: Start API in production mode and smoke the real Web client
+        env:
+          NODE_ENV: production
+          ENABLE_PRISMA: true
+          CORS_ORIGINS: http://localhost:3000
+          TRUST_PROXY: false
+          ENABLE_SWAGGER: false
+          PORT: 5000
+          NEXT_PUBLIC_API_MODE: real
+          NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:5000/api/v1
+          FINORA_HTTP_SMOKE: "1"
+        run: |
+          set -euo pipefail
+          node dist/src/main.js &
+          api_pid=$!
+          cleanup() {
+            kill "$api_pid" 2>/dev/null || true
+            wait "$api_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for attempt in $(seq 1 30); do
+            if curl --silent --show-error --fail http://127.0.0.1:5000/api/v1/ready; then
+              ready=true
+              break
+            fi
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              echo "Production API exited before readiness; inspect the API startup log above."
+              exit 1
+            fi
+            sleep 2
+          done
+          if [ "$ready" != true ]; then
+            echo "Production API did not become ready within 60 seconds."
+            exit 1
+          fi
+
+          pnpm --dir ../Web build
+          pnpm --dir ../Web exec vitest run --config vitest.integration.config.ts tests/integration/http-api.smoke.test.ts
+
+  web:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Apps/Web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: './.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+  mobile:
+    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Apps/Mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: './.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      - name: Verify production identifiers fail closed when unset
+        run: |
+          set +e
+          output="$(env -u FINORA_IOS_BUNDLE_ID -u FINORA_ANDROID_PACKAGE FINORA_RELEASE=production pnpm exec expo config --json 2>&1)"
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ] || ! printf '%s' "$output" | grep -Fq "FINORA_IOS_BUNDLE_ID must be set to the owning organization's real identifier for production builds."; then
+            echo "Expo production config did not fail for the expected missing iOS identifier."
+            printf '%s\n' "$output"
+            exit 1
+          fi
+
+  mobile-production-config:
+    if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Apps/Mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: './.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        working-directory: .
+      - name: Require production identities and a real API URL
+        env:
+          FINORA_IOS_BUNDLE_ID: ${{ vars.FINORA_IOS_BUNDLE_ID }}
+          FINORA_ANDROID_PACKAGE: ${{ vars.FINORA_ANDROID_PACKAGE }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FINORA_IOS_BUNDLE_ID//[[:space:]]/}" ]; then
+            echo "Required GitHub Actions variable FINORA_IOS_BUNDLE_ID is missing."
+            exit 1
+          fi
+          if [ -z "${FINORA_ANDROID_PACKAGE//[[:space:]]/}" ]; then
+            echo "Required GitHub Actions variable FINORA_ANDROID_PACKAGE is missing."
+            exit 1
+          fi
+          if [ -z "${EXPO_PUBLIC_API_URL//[[:space:]]/}" ]; then
+            echo "Required GitHub Actions variable EXPO_PUBLIC_API_URL is missing."
+            exit 1
+          fi
+          if [ "$FINORA_IOS_BUNDLE_ID" = "com.finora.mobile" ] || [ "$FINORA_ANDROID_PACKAGE" = "com.finora.mobile" ]; then
+            echo "Production identifiers must be the owning organization's real identifiers, not the placeholder."
+            exit 1
+          fi
+          node -e '
+            const value = process.env.EXPO_PUBLIC_API_URL;
+            let url;
+            try { url = new URL(value); } catch {
+              console.error("EXPO_PUBLIC_API_URL must be an absolute HTTPS API URL.");
+              process.exit(1);
+            }
+            const host = url.hostname.toLowerCase();
+            const path = url.pathname.replace(/\/+$/, "");
+            const invalid =
+              url.protocol !== "https:" ||
+              url.username ||
+              url.password ||
+              url.search ||
+              url.hash ||
+              path.endsWith("/api/v1") ||
+              host === "localhost" ||
+              host === "::1" ||
+              host === "[::1]" ||
+              host === "127.0.0.1" ||
+              host === "example.com" ||
+              host.endsWith(".example.com") ||
+              host.endsWith(".test") ||
+              host.endsWith(".localhost") ||
+              host.endsWith(".local") ||
+              host.endsWith(".invalid");
+            if (invalid) {
+              console.error("EXPO_PUBLIC_API_URL must use HTTPS and a real, non-placeholder host.");
+              process.exit(1);
+            }
+          '
+      - name: Resolve Expo production configuration
+        env:
+          FINORA_RELEASE: production
+          FINORA_IOS_BUNDLE_ID: ${{ vars.FINORA_IOS_BUNDLE_ID }}
+          FINORA_ANDROID_PACKAGE: ${{ vars.FINORA_ANDROID_PACKAGE }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_USE_REAL_API: "1"
+        run: pnpm exec expo config --json
+      - name: Export iOS production bundle
+        env:
+          FINORA_RELEASE: production
+          FINORA_IOS_BUNDLE_ID: ${{ vars.FINORA_IOS_BUNDLE_ID }}
+          FINORA_ANDROID_PACKAGE: ${{ vars.FINORA_ANDROID_PACKAGE }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_USE_REAL_API: "1"
+        run: pnpm export:ios
+      - name: Export Android production bundle
+        env:
+          FINORA_RELEASE: production
+          FINORA_IOS_BUNDLE_ID: ${{ vars.FINORA_IOS_BUNDLE_ID }}
+          FINORA_ANDROID_PACKAGE: ${{ vars.FINORA_ANDROID_PACKAGE }}
+          EXPO_PUBLIC_API_URL: ${{ vars.EXPO_PUBLIC_API_URL }}
+          EXPO_PUBLIC_USE_REAL_API: "1"
+        run: pnpm export:android
+
+  dependency-audit:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.7.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: './.nvmrc'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @finora/api audit --prod --audit-level high
+      - run: pnpm --filter nextjs audit --prod --audit-level high
+      - run: pnpm --filter finora-mobile audit --prod --audit-level high
